@@ -1,0 +1,214 @@
+---
+title: "Devoir d'Analyse de données – M1 MAEF"
+author: "Alissa DJEMA, Jean-Phillipes HOUNTON"
+date: "18 Mai 2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+  autor: Alissa DJEMA & Jean-Philippes HOUNTON
+  html_notebook: default
+---
+\tableofcontents
+\newpage
+
+\begin{center}
+  \section{Introduction}
+\end{center}
+
+L’algorithme EM, de l’anglais expectation-maximization algorithm, a été établit pour la première fois en 1977, par Dempster, Laird, Rubin. Il s’agit d’un algorithme itératif permettent l’estimation paramétrique du maximum de vraisemblance. Ainsi, lorsque les données que l’on dispose ne permettent pas de maximiser analytiquement la vraisemblance, cette algorithme est une alternative. 
+	Son principe se résume généralement à deux étapes qui s’alterne. L’étape E et l’étape M d’où le nom d’algorithme EM. L’objectif de ce projet est de mener une analyse de données via un algorithme EM que l’on aura écrit et implémenté. Pour finir nous l’appliquerons à des données pour illustrer son fonctionnement.
+
+
+# 1. Algorithme EM
+
+La première étape de notre travail est la rédaction de l’algorithme EM. Pour ce faire, il est nécessaire d’écrire la vraisemblance de notre modèle. Dans cette étude on considère un n-échantillon   $(X_{1},…,X_{n})$ provenant d’un mélange de Poisson 
+$$
+f_{\theta}(x)=\sum_{k=1}^{K} \pi_{k} f_{\lambda_{k}}(x)
+$$
+
+où $\pi_{k}>0$, $\sum_{k=1}^{K}\pi_{k} =1$ des probabilités du mélange et $f_{\lambda_{k}} \sim \mathcal{P}\left(\lambda_{k}\right)$ une loi de Poisson.
+Le paramètre du modèle que nous souhaitons estimer est le suivant.
+$$
+\left.\theta=\left(\pi_{1}, \ldots, \pi_{K-1}, \lambda_{1}, \ldots, \lambda_{K}\right) \in\right] 0,1\left[ ^{K-1} \times \mathbb{R}_{+}^{K}\right.
+$$
+
+Ainsi, nous pouvons calculer la vraisemblance du modèle.
+La vraissemblance complète s'écrit  : 
+
+$$ \mathcal{L}(x_1,....,x_n,z_1,....,z_n,\theta) = \prod_{i=1}^nf_{\theta}(x_i)$$
+                                     $$=\prod_{i=1}^n(\pi_1f_{{\lambda}_1}(x_i))^{{1}_{z_i=1}}.(\pi_2f_{{\lambda}_2}(x_i))^{{1}_{z_i=2}}.....(\pi_Kf_{{\lambda}_K}(x_i))^{{1}_{z_i=K}}$$
+                                  $$ =  \prod_{i=1}^n\prod_{k=1}^K(\pi_kf_{{\lambda}_k}(x_i))^{{1}_{z_i=k}}$$
+
+la log-vraissemblance s'écrit alors $$\ln(\mathcal{L}(x_1,....,x_n,z_1,....,z_n,\theta))= \sum_{i=1}^n\sum_{k=1}^K{{1}_{z_i=k}}\ln(\pi_kf_{{\lambda}_k}(x_i))$$
+Dans un second temps, nous devons calculer l’espérance conditionnellement aux données. En effet, il s’agit de l’étape E. Cette dernière consiste à calculer l’espérance de la log-vraisemblance complète, conditionnellement aux données observées, pour un $\theta^{m-1}$ fixé, où m est le nombre d’étape réalisé. Ainsi, pour l’étape 1, il s’agit de $\theta^{0}$ provenant de l’initialisation. Pour ce faire, nous avons initialisé nos paramètres, et fixé une valeur pour K. Notons que nombre de classe, ici K n’est pas connu à l’avance.
+
+L'espérance de la log-vraissemblance complete est donc:
+
+$$\mathbb{E}_{\theta^{m-1}}[ln(\mathcal{L}(x_1^n,z_1^n,\theta)|x_1^n] = \mathbb{E}_{\theta^{m-1}}
+\begin{bmatrix}
+\sum_{i=1}^n\sum_{k=1}^K{{1}_{z_i=k}}(\ln(\pi_k) + \ln(f_{{\lambda}_k}(x_i))|x_1^n) \end{bmatrix} $$
+$$= \sum_{i=1}^n\sum_{k=1}^K\mathbb{E}_{\theta^{m-1}}({1}_{z_i=k}|x_1^n)(\ln(\pi_k) + \ln(f_{{\lambda}_k}(x_i)) $$
+$$= \sum_{i=1}^n\sum_{k=1}^K\mathbb{P}_{\theta^{m-1}}(z_i=k|x_1^n)(\ln(\pi_k) + \ln(f_{{\lambda}_k}(x_i)) $$
+
+
+En posant $\mathbb{P}_{\theta^{m-1}}(z_i=k|x_1^n)$ = $\delta_i^k({\theta}^{m-1})$, on peut écrire lespérance de la log vraissemblance comme
+$$ \mathbb{E}_{\theta^{m-1}}[ln(\mathcal{L}(x_1^n,z_1^n,\theta)|x_1^n] =  \sum_{i=1}^n\sum_{k=1}^K\delta_i^k({\theta}^{m-1})(\ln(\pi_k) + \ln(f_{{\lambda}_k}(x_i))$$ 
+L’étape E est toujours suivis de l’étape M qui consiste à maximiser la vraisemblance. Cette maximisation est maintenant possible puisque l’on utilise l’estimation des données inconnues obtenu à l’étape précédente. Suite à cette phase, nous avons $\hat{\theta^{m}}$. Ainsi, on peut mettre à jour les valeurs des paramètres pour la prochaine itération.
+
+On a donc: 
+
+$$\hat{\pi}_k = \frac{1}{n}\sum_{i=1}^n\delta_i^k({\theta}^{m-1}) $$
+et 
+
+$$ \hat{\lambda}_k = \frac{\sum_{i=1}^n\delta_i^k({\theta}^{m-1})x_i}{\sum_{i=1}^n\delta_i^k({\theta}^{m-1})} $$ 
+
+### 1.1 Initialisation 
+Pour commencer, on initialise $\theta$ tel que : 
+$$\forall k \in [1,K-1],  \pi_k^0 = \frac{1}{K}$$
+$$\forall k \in [1,K], \lambda_k^0 \in [0,10].$$
+
+### 1.2 E-Step 
+
+Calculer $$ \forall m \geq 1, \delta_i^k({\theta}^{m-1}) = \frac{\pi_k^{m-1}f_{\lambda_{k}^{m-1}}(x_i)}{f_{{\theta}^{m-1}}(x_i)}$$
+
+### 1.3 M-Step
+Calculer les mises à jour pour $m \geq 1$
+
+$$\pi_k^m = \frac{1}{n}\sum_{i=1}^n\delta_i^k({\theta}^{m-1})$$
+
+$$ \lambda_k^m = \frac{\sum_{i=1}^n\delta_i^k({\theta}^{m-1})x_i}{\sum_{i=1}^n\delta_i^k({\theta}^{m-1})} $$ 
+
+
+```{r,echo=FALSE}
+knitr::opts_chunk$set(comment=NA,warning = FALSE,echo = FALSE,fig.width=11,fig.height=4.5)
+```
+
+# 2. Implementation
+
+Nous pouvons à présent implémenter l’algorithme, et réaliser plusieurs tests pour vérifier la bonne convergence de l’algorithme. On sait notamment que l’algorithme est très dépendant de l’étape d’initialisation. D’où l’intérêt de réaliser plusieurs initialisations.  
+
+# 3. Validation de l'algorithme par simulations 
+
+Afin de s'assurer que notre algorithme est fonctionnel, on avons effectuer un certain nombres de simulations. 
+
+**Cas 1** : On prend 
+\begin{itemize}
+\item K = 3
+\item $(\pi_1,\lambda_1) = (0.5,1),$
+\item $ (\pi_2,\lambda_2) = (0.25,10),$
+\item $(\pi_3,\lambda_3) = (0.25,20).$
+\end{itemize}
+```{r,echo=FALSE,include=F}
+n=1000
+Y = runif(n,0,20)
+X <- matrix(nrow = n)
+for (i in 1:n) {
+  if (Y[i] <= 10) {X[i] <- rpois(1,lambda = 1)}
+  if (Y[i] > 10 & Y[i] < 15 ) {X[i] <- rpois(1,lambda = 10)}
+  if(Y[i] >= 15) {X[i] <- rpois(1,lambda = 20)}
+}
+#plot(X)
+hist(X)
+source('./DM.R')
+```
+
+A la suite de l'algorithme, on obtient :
+\begin{itemize}
+\item K  = `r K`
+\item $(\hat{\pi}_1,\hat{\lambda}_1)$ = (`r sort(theta$pi)[3]`,`r sort(theta$lambda)[1]`)
+\item $ (\hat{\pi}_2,\hat{\lambda}_2)$ =(`r sort(theta$pi)[2]`,`r sort(theta$lambda)[2]`)
+\item $(\hat{\pi}_3,\hat{\lambda}_3)$ = (`r sort(theta$pi)[1]`,`r sort(theta$lambda)[3]`)
+\end{itemize}
+
+
+**Cas 2** : On prend
+\begin{itemize}
+\item K = 5
+\item $(\pi_1,\lambda_1) = (0.2,0.5),$
+\item $ (\pi_2,\lambda_2) = (0.2,3),$
+\item $(\pi_3,\lambda_3) = (0.2,10),$
+\item $(\pi_4,\lambda_4) = (0.2,40).$
+\item $(\pi_5,\lambda_5) = (0.2,100).$
+\end{itemize}
+
+```{r echo=FALSE, include=FALSE}
+n=1000
+Y = runif(n,0,40)
+X <- matrix(nrow = n)
+for (i in 1:n) {
+  if (Y[i] <= 8) {X[i] <- rpois(1,lambda = 0.5)}
+  if (Y[i] > 8 & Y[i] <= 16 ) {X[i] <- rpois(1,lambda = 3)}
+  if (Y[i] > 16 & Y[i] <= 24 ) {X[i] <- rpois(1,lambda = 10)}
+  if (Y[i] > 24 & Y[i] < 32 ) {X[i] <- rpois(1,lambda = 40)}
+  if (Y[i] >= 32 ) {X[i] <- rpois(1,lambda = 100)}
+}
+#plot(X)
+#hist(X)
+source('./DM.R')
+```
+
+A la suite de l'algorithme, on obtient :
+\begin{itemize}
+\item K  = `r K`
+\item $(\hat{\pi}_1,\hat{\lambda}_1)$ = (`r sort(theta$pi)[1]`,`r sort(theta$lambda)[1]`)
+\item $(\hat{\pi}_2,\hat{\lambda}_2)$ =(`r sort(theta$pi)[2]`,`r sort(theta$lambda)[2]`)
+\item $(\hat{\pi}_3,\hat{\lambda}_3)$ = (`r sort(theta$pi)[3]`,`r sort(theta$lambda)[3]`)
+\item $(\hat{\pi}_4,\hat{\lambda}_4)$ = (`r sort(theta$pi)[4]`,`r sort(theta$lambda)[4]`)
+\item $(\hat{\pi}_5,\hat{\lambda}_5)$ = (`r sort(theta$pi)[5]`,`r sort(theta$lambda)[5]`)
+\end{itemize}
+
+On constate que dans les 2 cas ci-dessus, notre algorithme réussi assez bien à prévoir aussi bien les valeurs de $\pi_k$ que celles de $\lambda_k$.
+
+
+Pour sélectionner le nombre de composante de notre modèle, on propose d’utiliser un critère de vraisemblance pénalisé, le BIC qui est tel que : 
+$$
+BIC(\mathcal{M})=-2 \ln p_{\mathcal{M}}\left(x_{1}^{n}\right)+|\mathcal{M}| \ln n
+$$
+
+où $\mathcal{M}$ est un modèle de mélange à K classes, et $|\mathcal{M}|$ est le nombre de paramètre du modèle. Ainsi, on définit le nombre de classe K du modèle comme étant celui qui minimise le critère BIC. Dans notre cas, on a : $|\mathcal{M}| = 2K-1.$
+
+# 4. Application à un jeu de données (Hurricane.csv)
+
+On propose à présent d’implémenter notre algorithme, sur le de jeu de données tennis. Une première intuition avant de lancer notre algorithme serai de visualiser les données dans un histogramme. À la lecture des données, on pourrait supposer environ 2 ou 3 classes coupées en décile.
+
+```{r,echo=FALSE,fig.width=11,fig.height=4.5}
+library(ggplot2)
+X = read.table("./Hurricane.csv",header = T,sep = ",") #Change le chemin d'accès
+names(X) <- c("Nombres de recherches")
+X <- X[-c(1),1]
+X = as.numeric(as.character(X))
+ggplot(data=data.frame(X),aes(x=X,y=NA)) + geom_point()
+#hist(X,main="Histogramme des données",col.main="darkblue",
+     #col.axis="darkblue",ylab="Fréquence",col.lab="darkblue",col="#66CCCC",cex.main=0.8,cex.lab=0.8)
+```
+
+Après notre algorithme et l'utilisation du critére BIC, on constate qu'il existe différents régimes. Ceux-ci sont au nombre de **3**. Voici ci-dessous les paramètres de notre modèle. On affiche également le graphique de la convergance du BIC.
+
+```{r,include=F,echo=F}
+source('./DM_HOUNTON_DJEMA.R')
+```
+\begin{itemize}
+\item K  = `r K`
+\item $(\hat{\pi}_1,\hat{\lambda}_1)$ = (`r theta$pi[1]`,`r theta$lambda[1]`)
+\item $ (\hat{\pi}_2,\hat{\lambda}_2)$ =(`r theta$pi[2]`,`r theta$lambda[2]`)
+\item $(\hat{\pi}_3,\hat{\lambda}_3)$ = (`r theta$pi[3]`,`r theta$lambda[3]`)
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
